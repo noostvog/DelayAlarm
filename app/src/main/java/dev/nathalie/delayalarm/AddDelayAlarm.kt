@@ -21,9 +21,9 @@ import android.widget.AdapterView
 import android.widget.Toast
 import android.widget.AdapterView.OnItemSelectedListener
 
-class AddDelayAlarm : AppCompatActivity() {
+typealias TrainStops = List<String>
 
-    var stopsForTrain: List<String> = ArrayList<String>()
+class AddDelayAlarm : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +39,7 @@ class AddDelayAlarm : AppCompatActivity() {
         }
         trainNumberInput.setOnFocusChangeListener { _, b ->
             if (!b) {
-                RetrieveTrainTask(this, trainNumberInput.text.toString(), trainNumberInfo, spinner).execute()
+                RetrieveTrainTask(trainNumberInput.text.toString(), trainNumberInfo, spinner).execute()
             }
         }
 
@@ -61,12 +61,11 @@ class AddDelayAlarm : AppCompatActivity() {
     }
 
     // Get information from train number and display it on screen
-    private class RetrieveTrainTask internal constructor(val context: AddDelayAlarm,
-                                                         val trainNumber: String,
+    private class RetrieveTrainTask internal constructor(val trainNumber: String,
                                                          val updateField: TextView,
                                                          val spinner: Spinner
-    ) : AsyncTask<Void, Void, String>() {
-        override fun doInBackground(vararg params: Void): String {
+    ) : AsyncTask<Void, Void, TrainStops>() {
+        override fun doInBackground(vararg params: Void): TrainStops {
             try {
                 //TODO change date to today (or recent weekday as P-trains do not run in the weekends)
                 val trainJSON: String = URL("https://api.irail.be/vehicle/?id=BE.NMBS.$trainNumber&date=170619&fast=false&format=json&lang=en&alerts=false").readText()
@@ -74,23 +73,22 @@ class AddDelayAlarm : AppCompatActivity() {
                 val stops = result?.stops?.stop
 
                 //TODO the "!!" is dangerous, put if-statements to verify
-                context.stopsForTrain = stops!!.map { it.station }
+                return stops!!.map { it.station }
 
             } catch (e: Exception) {
-                context.stopsForTrain = listOf("unknown", "unknown")
+                return listOf("unknown", "unknown")
             }
-            return ""
         }
 
-        override fun onPostExecute(result: String) {
+        override fun onPostExecute(result: TrainStops) {
             // Provide general train information
-            val departStation = context.stopsForTrain.first()
-            val arriveStation = context.stopsForTrain.last()
+            val departStation = result.first()
+            val arriveStation = result.last()
             updateField.text =
                 "Train from $departStation to $arriveStation"
 
             // Show list of stops for train
-            val adapter = ArrayAdapter<String>(context, android.R.layout.simple_spinner_dropdown_item, context.stopsForTrain)
+            val adapter = ArrayAdapter<String>(spinner.context, android.R.layout.simple_spinner_dropdown_item, result)
             spinner.adapter = adapter
             spinner.visibility = View.VISIBLE
         }
@@ -170,4 +168,5 @@ class AddDelayAlarm : AppCompatActivity() {
         val name: String,
         val normal: String
     )
+
 }
