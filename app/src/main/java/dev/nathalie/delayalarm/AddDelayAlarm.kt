@@ -92,6 +92,10 @@ class AddDelayAlarm : AppCompatActivity() {
             spinner.adapter = adapter
             spinner.visibility = View.VISIBLE
         }
+
+        override fun onPreExecute() {
+            updateField.text = "Loading..."
+        }
     }
 
     private val timePickerListener =
